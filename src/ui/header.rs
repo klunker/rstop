@@ -17,9 +17,10 @@ pub struct HeaderPanel;
 impl Panel for HeaderPanel {
     fn draw(&self, frame: &mut Frame, area: Rect, m: &SystemMetrics) {
         // Construct header string: title and system stats separated by pipe delimiters
+        let update_str = crate::os::format_last_update(m.os_last_updated);
         let content = format!(
-            " top-rs | Host: {} | OS: {} {} | Up: {}",
-            m.host_name, m.os_name, m.kernel_version, m.uptime_str,
+            " top-rs | Host: {} | OS: {} {} ({}) | Up: {} | {}",
+            m.host_name, m.os_name, m.os_version, m.kernel_version, m.uptime_str, update_str
         );
 
         let line = Line::from(vec![

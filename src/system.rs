@@ -14,6 +14,8 @@ pub struct SystemMetrics {
     // --- Machine identification ---
     pub host_name: String,
     pub os_name: String,
+    pub os_version: String,
+    pub os_last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub kernel_version: String,
 
     // --- Processor ---
@@ -64,8 +66,7 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
 
     let host_name = System::host_name()
         .unwrap_or_else(|_| "localhost".to_string());
-    let os_name = System::name()
-        .unwrap_or_else(|_| "Linux".to_string());
+    let os_info = crate::os::get_os_info();
     let kernel_version = System::kernel_version()
         .unwrap_or_else(|_| "unknown".to_string());
 
@@ -106,7 +107,9 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
 
     SystemMetrics {
         host_name,
-        os_name,
+        os_name: os_info.name,
+        os_version: os_info.version,
+        os_last_updated: os_info.last_updated,
         kernel_version,
         cpu_count,
         cpu_name,

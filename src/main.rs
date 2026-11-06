@@ -8,6 +8,7 @@ mod system;
 mod terminal;
 mod ui;
 mod util;
+mod os;
 
 use std::io;
 
