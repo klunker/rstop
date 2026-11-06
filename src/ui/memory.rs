@@ -48,7 +48,7 @@ impl Panel for MemoryPanel {
         // Clamp to [0.0, 1.0] prevents invalid ratio bounds.
         let mem_ratio = (m.mem_percent / 100.0).clamp(0.0, 1.0);
         let mem_gauge = Gauge::default()
-            .gauge_style(Style::default().fg(Color::Green).bg(Color::DarkGray))
+            .gauge_style(Style::default().fg(Color::Green).bg(Color::Black))
             .ratio(mem_ratio)
             .label(format!("  RAM  {:.1}%", m.mem_percent));
         frame.render_widget(mem_gauge, chunks[1]);
@@ -62,7 +62,7 @@ impl Panel for MemoryPanel {
             format_bytes(m.swap_total),
         );
         let swap_gauge = Gauge::default()
-            .gauge_style(Style::default().fg(Color::Red).bg(Color::DarkGray))
+            .gauge_style(Style::default().fg(Color::Yellow).bg(Color::Black))
             .ratio(swap_ratio)
             .label(swap_label);
         frame.render_widget(swap_gauge, chunks[2]);
