@@ -97,7 +97,7 @@ fn render_cores_row(frame: &mut Frame, area: Rect, cores: &[f64], start_index: u
 
         // Compact label for narrower columns, e.g. "C1 12%" vs "Core1 12%"
         let label = if cols[col_idx].width >= 12 {
-            format!("Core{} {:.0}%", core_num, usage)
+            format!("{}-Core {:.0}%", core_num, usage)
         } else if cols[col_idx].width >= 8 {
             format!("C{} {:.0}%", core_num, usage)
         } else {
