@@ -1,6 +1,6 @@
 // src/ui/memory.rs
 // Memory and Swap overview panel: textual metrics and graphical gauges.
-// Additional metrics can be added here without affecting other components.
+// Adapts responsively to narrow column widths (e.g. 50% split) and full widths.
 
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -31,36 +31,62 @@ impl Panel for MemoryPanel {
             .split(area);
 
         // --- Textual metrics row ---
-        let info_line = Line::from(vec![
-            Span::styled("Memory: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-            Span::raw("Used: "),
-            Span::styled(format_bytes(m.mem_used), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-            Span::raw("  Avail: "),
-            Span::styled(format_bytes(m.mem_available), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
-            Span::raw("  Free: "),
-            Span::styled(format_bytes(m.mem_free), Style::default().fg(Color::Gray)),
-            Span::raw("  Total: "),
-            Span::styled(format_bytes(m.mem_total), Style::default().add_modifier(Modifier::BOLD)),
-        ]);
+        // Responsive formatting: adapts if rendered in a narrow column (e.g. 50% parallel)
+        let info_line = if area.width >= 55 {
+            Line::from(vec![
+                Span::styled("Memory: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::raw("Used: "),
+                Span::styled(format_bytes(m.mem_used), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::raw("  Avail: "),
+                Span::styled(format_bytes(m.mem_available), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                Span::raw("  Free: "),
+                Span::styled(format_bytes(m.mem_free), Style::default().fg(Color::Gray)),
+                Span::raw("  Total: "),
+                Span::styled(format_bytes(m.mem_total), Style::default().add_modifier(Modifier::BOLD)),
+            ])
+        } else {
+            Line::from(vec![
+                Span::styled("Mem: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(format_bytes(m.mem_used), Style::default().fg(Color::Yellow)),
+                Span::raw("/"),
+                Span::styled(format_bytes(m.mem_total), Style::default()),
+                Span::raw(" (Free: "),
+                Span::styled(format_bytes(m.mem_free), Style::default().fg(Color::Gray)),
+                Span::raw(")"),
+            ])
+        };
         frame.render_widget(Paragraph::new(info_line), chunks[0]);
 
         // --- RAM gauge ---
-        // Clamp to [0.0, 1.0] prevents invalid ratio bounds.
         let mem_ratio = (m.mem_percent / 100.0).clamp(0.0, 1.0);
+        let mem_label = if area.width >= 45 {
+            format!(
+                "  RAM  {:.1}%  ({}/{})",
+                m.mem_percent,
+                format_bytes(m.mem_used),
+                format_bytes(m.mem_total)
+            )
+        } else {
+            format!("  RAM  {:.1}%", m.mem_percent)
+        };
         let mem_gauge = Gauge::default()
             .gauge_style(Style::default().fg(Color::Green).bg(Color::Black))
             .ratio(mem_ratio)
-            .label(format!("  RAM  {:.1}%", m.mem_percent));
+            .label(mem_label);
         frame.render_widget(mem_gauge, chunks[1]);
 
         // --- Swap gauge ---
         let swap_ratio = (m.swap_percent / 100.0).clamp(0.0, 1.0);
-        let swap_label = format!(
-            "  Swap {:.1}%  ({}/{})",
-            m.swap_percent,
-            format_bytes(m.swap_used),
-            format_bytes(m.swap_total),
-        );
+        let swap_label = if area.width >= 45 {
+            format!(
+                "  Swap {:.1}%  ({}/{})",
+                m.swap_percent,
+                format_bytes(m.swap_used),
+                format_bytes(m.swap_total),
+            )
+        } else {
+            format!("  Swap {:.1}%", m.swap_percent)
+        };
         let swap_gauge = Gauge::default()
             .gauge_style(Style::default().fg(Color::Yellow).bg(Color::Black))
             .ratio(swap_ratio)

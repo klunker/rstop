@@ -4,7 +4,7 @@
 //  • Swapping data sources (e.g. sysinfo vs direct /proc access) without touching UI code.
 //  • Easily providing mock metric structures for automated UI testing.
 
-use sysinfo::System;
+use sysinfo::{Disks, System};
 use crate::util::{format_uptime, percent};
 
 /// System status snapshot captured on a single tick.
@@ -18,8 +18,9 @@ pub struct SystemMetrics {
 
     // --- Processor ---
     pub cpu_count: usize,
-    #[allow(dead_code)]
     pub cpu_avg_percent: f64,
+    /// Per-core CPU load percentages (e.g. [12.5, 4.0, 99.0, ...])
+    pub cpu_cores: Vec<f64>,
 
     // --- Random Access Memory ---
     pub mem_total: u64,
@@ -32,6 +33,16 @@ pub struct SystemMetrics {
     pub swap_total: u64,
     pub swap_used: u64,
     pub swap_percent: f64,
+
+    // --- Storage / Disk (HDD / SSD) ---
+    #[allow(dead_code)]
+    pub disk_total: u64,
+    #[allow(dead_code)]
+    pub disk_used: u64,
+    #[allow(dead_code)]
+    pub disk_free: u64,
+    #[allow(dead_code)]
+    pub disk_percent: f64,
 
     // --- System uptime ---
     pub uptime_str: String,
@@ -57,10 +68,11 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
     let kernel_version = System::kernel_version()
         .unwrap_or_else(|_| "unknown".to_string());
 
-    let cpu_count = sys.cpus().len();
+    let cpu_cores: Vec<f64> = sys.cpus().iter().map(|c| c.usage() as f64).collect();
+    let cpu_count = cpu_cores.len();
     // Average CPU usage across all active cores
     let cpu_avg_percent = if cpu_count > 0 {
-        sys.cpus().iter().map(|c| c.usage() as f64).sum::<f64>() / cpu_count as f64
+        cpu_cores.iter().sum::<f64>() / cpu_count as f64
     } else {
         0.0
     };
@@ -73,6 +85,21 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
     let swap_total = sys.total_swap();
     let swap_used = sys.used_swap();
 
+    // Storage / Disks metrics
+    let (disk_total, disk_available) = if let Ok(disks) = Disks::new_with_refreshed_list() {
+        let mut total = 0u64;
+        let mut avail = 0u64;
+        for disk in &disks {
+            total += disk.total_space();
+            avail += disk.available_space();
+        }
+        (total, avail)
+    } else {
+        (0, 0)
+    };
+    let disk_used = disk_total.saturating_sub(disk_available);
+    let disk_percent = percent(disk_used, disk_total);
+
     let uptime_secs = System::uptime().unwrap_or(0);
 
     SystemMetrics {
@@ -81,6 +108,7 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
         kernel_version,
         cpu_count,
         cpu_avg_percent,
+        cpu_cores,
         mem_total,
         mem_used,
         mem_free,
@@ -89,6 +117,10 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
         swap_total,
         swap_used,
         swap_percent: percent(swap_used, swap_total),
+        disk_total,
+        disk_used,
+        disk_free: disk_available,
+        disk_percent,
         uptime_str: format_uptime(uptime_secs),
         process_count: sys.processes().len(),
     }

@@ -12,7 +12,7 @@ use sysinfo::System;
 use crate::event::{poll_action, AppAction};
 use crate::system::collect_metrics;
 use crate::terminal::TerminalGuard;
-use crate::ui;
+use crate::ui::{self, PanelLayoutMode};
 
 /// Interval between metric collection ticks and UI redraws.
 const TICK_RATE: Duration = Duration::from_millis(1000);
@@ -22,6 +22,8 @@ pub struct App {
     guard: TerminalGuard,
     /// System inspection instance held across the application lifecycle to avoid costly re-initialization.
     sys: System,
+    /// Active panel layout mode (50/50 dual parallel, 100%, 70%, 50%).
+    layout_mode: PanelLayoutMode,
 }
 
 impl App {
@@ -32,7 +34,8 @@ impl App {
         let sys = System::new_all().map_err(|e| {
             io::Error::new(io::ErrorKind::Other, format!("sysinfo init: {}", e))
         })?;
-        Ok(Self { guard, sys })
+        let layout_mode = PanelLayoutMode::default();
+        Ok(Self { guard, sys, layout_mode })
     }
 
     /// Primary event loop: collect metrics → draw UI → poll user events.
@@ -44,12 +47,15 @@ impl App {
 
             // 2. Render UI in a single atomic pass using ratatui's double-buffering
             self.guard.terminal.draw(|frame| {
-                ui::draw(frame, &metrics);
+                ui::draw(frame, &metrics, self.layout_mode);
             })?;
 
             // 3. Wait for keyboard event or timeout tick
             match poll_action(TICK_RATE)? {
                 AppAction::Quit => break,
+                AppAction::CycleLayout => {
+                    self.layout_mode = self.layout_mode.next();
+                }
                 AppAction::None => {}
             }
         }

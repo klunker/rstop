@@ -18,8 +18,8 @@ impl Panel for HeaderPanel {
     fn draw(&self, frame: &mut Frame, area: Rect, m: &SystemMetrics) {
         // Construct header string: title and system stats separated by pipe delimiters
         let content = format!(
-            " top-rs | Host: {} | OS: {} {} | CPUs: {} | Up: {}",
-            m.host_name, m.os_name, m.kernel_version, m.cpu_count, m.uptime_str,
+            " top-rs | Host: {} | OS: {} {} | Up: {}",
+            m.host_name, m.os_name, m.kernel_version, m.uptime_str,
         );
 
         let line = Line::from(vec![

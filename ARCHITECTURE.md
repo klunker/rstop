@@ -22,7 +22,9 @@ rstop/
     └── ui/
         ├── mod.rs    ← draw(): composes all panels into one ratatui frame
         ├── header.rs ← green header bar (title + live system info)
-        ├── memory.rs ← Memory & Swap panel with gauge bars
+        ├── layout.rs ← PanelLayoutMode: 50/50 dual parallel, 100%, 70%, 50% width
+        ├── memory.rs ← Memory & Swap panel with responsive gauge bars
+        ├── disk.rs   ← Storage (HDD/SSD) & CPU panel paired in dual-column mode
         └── footer.rs ← bottom status / keybinding bar
 ```
 

@@ -16,6 +16,8 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 pub enum AppAction {
     /// Exit the application.
     Quit,
+    /// Cycle between panel layout modes (50/50 dual, 100%, 70%, 50%).
+    CycleLayout,
     /// No relevant action in this tick (e.g. timeout or unmapped key).
     None,
 }
@@ -35,6 +37,8 @@ pub fn poll_action(timeout: Duration) -> io::Result<AppAction> {
                 KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => AppAction::Quit,
                 // 'q': standard single-key quit shortcut
                 KeyCode::Char('q') => AppAction::Quit,
+                // Tab or 'l': cycle panel layout modes
+                KeyCode::Tab | KeyCode::Char('l') => AppAction::CycleLayout,
                 _ => AppAction::None,
             })
         }

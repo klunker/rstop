@@ -1,14 +1,15 @@
 // src/ui/mod.rs
 // Top-level UI rendering coordinator: composes all panels into a single frame.
-//
-// Adding a new panel:
-//   1. Create `src/ui/my_panel.rs` implementing `Panel for MyPanel`.
-//   2. Declare `pub mod my_panel;` and add it to the Layout constraints + draw() call below.
-//   No other files need to be modified.
+// Supports dynamic width regulation (100%, 70%, 50%) and parallel dual-panel placement.
 
+pub mod cpu;
+pub mod disk;
 pub mod footer;
 pub mod header;
+pub mod layout;
 pub mod memory;
+
+pub use layout::PanelLayoutMode;
 
 use ratatui::{
     layout::{Constraint, Direction, Layout},
@@ -24,8 +25,8 @@ pub trait Panel {
 }
 
 /// Main drawing function invoked once per tick from App::run().
-/// Calculates layout constraints and delegates rendering to each panel.
-pub fn draw(frame: &mut Frame, metrics: &SystemMetrics) {
+/// Calculates layout constraints and delegates rendering to panels according to layout_mode.
+pub fn draw(frame: &mut Frame, metrics: &SystemMetrics, layout_mode: PanelLayoutMode) {
     let total = frame.area();
 
     // Top-level vertical screen layout:
@@ -44,27 +45,35 @@ pub fn draw(frame: &mut Frame, metrics: &SystemMetrics) {
     // --- Header ---
     header::HeaderPanel.draw(frame, root[0], metrics);
 
-    // --- Content area: memory + future panels ---
-    // Outer border acts as top and bottom separators.
+    // --- Content area: panels + future process table ---
     let content_block = Block::default()
         .borders(Borders::TOP | Borders::BOTTOM)
         .border_type(BorderType::Plain);
     let inner = content_block.inner(root[1]);
     frame.render_widget(content_block, root[1]);
 
-    // Inner vertical stack within content area:
-    //   [0] Memory panel — 3 rows (text summary + 2 gauge bars)
+    // Vertical split inside content:
+    //   [0] Meter panels row (height 3)
     //   [1] Remaining expandable area (reserved for process table)
     let content_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // MemoryPanel (1 info line + 2 gauge bars)
-            Constraint::Min(0),     // Available space for future panels
+            Constraint::Length(3),  // Meter panels row (3 rows for text + 2 gauges)
+            Constraint::Min(0),     // Available space for future process table
         ])
         .split(inner);
 
-    memory::MemoryPanel.draw(frame, content_chunks[0], metrics);
+    // Apply horizontal column splitting according to layout_mode (Full, 70%, 50%, DualEqual)
+    let columns = layout_mode.split(content_chunks[0]);
+    if columns.len() == 2 {
+        // Parallel mode: 50% Memory on left, 50% CPU per-core widget on right
+        memory::MemoryPanel.draw(frame, columns[0], metrics);
+        cpu::CpuPanel.draw(frame, columns[1], metrics);
+    } else if columns.len() == 1 {
+        // Single panel mode: Memory panel rendered with the regulated width (100%, 70%, or 50%)
+        memory::MemoryPanel.draw(frame, columns[0], metrics);
+    }
 
     // --- Footer ---
-    footer::FooterPanel.draw(frame, root[2], metrics);
+    footer::FooterPanel { layout_mode }.draw(frame, root[2], metrics);
 }
