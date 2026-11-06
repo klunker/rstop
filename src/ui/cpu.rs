@@ -32,6 +32,7 @@ impl Panel for CpuPanel {
         // --- Textual summary row ---
         let summary_line = Line::from(vec![
             Span::styled("CPU: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::raw(format!("{} ", m.cpu_name)),
             Span::raw("Cores: "),
             Span::styled(format!("{}", m.cpu_count), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
             Span::raw("  Avg Load: "),

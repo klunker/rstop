@@ -17,6 +17,7 @@ pub struct SystemMetrics {
     pub kernel_version: String,
 
     // --- Processor ---
+    pub cpu_name: String,
     pub cpu_count: usize,
     pub cpu_avg_percent: f64,
     /// Per-core CPU load percentages (e.g. [12.5, 4.0, 99.0, ...])
@@ -69,6 +70,7 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
         .unwrap_or_else(|_| "unknown".to_string());
 
     let cpu_cores: Vec<f64> = sys.cpus().iter().map(|c| c.usage() as f64).collect();
+    let cpu_name = sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unknown CPU".to_string());
     let cpu_count = cpu_cores.len();
     // Average CPU usage across all active cores
     let cpu_avg_percent = if cpu_count > 0 {
@@ -107,6 +109,7 @@ pub fn collect_metrics(sys: &mut System) -> SystemMetrics {
         os_name,
         kernel_version,
         cpu_count,
+        cpu_name,
         cpu_avg_percent,
         cpu_cores,
         mem_total,
